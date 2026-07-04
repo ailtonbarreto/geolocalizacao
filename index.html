@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa Satélite</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+</head>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+    }
+
+    h1 {
+        text-align: center;
+        padding: 20px 0;
+        margin: 0;
+        background: #333;
+        color: white;
+    }
+
+    #map {
+        width: 100%;
+        height: 100vh;
+    }
+
+    #coords {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 14px;
+    }
+</style>
+
+<body>
+
+    <!-- <h1>Mapa Satélite</h1> -->
+
+    <div id="coords">Lat: | Lon:</div>
+
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+</body>
+
+<script>
+
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbNsRyrCfXEjaNl5EmXLWHJLMj3wQb3H4df7leBdi8yzvUDunczFL0s0BK2R--PKcJ0-TFhWrcjL1t/pub?gid=0&single=true&output=csv";
+
+    // Inicializa o mapa
+    const map = L.map("map", {
+        zoomControl: true,
+        minZoom: 1,
+        maxZoom: 18
+    });
+
+    // Camada de satélite
+    L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+            maxZoom: 18,
+            attribution: "Tiles © Esri"
+        }
+    ).addTo(map);
+
+    // Exibe coordenadas do mouse
+    const coords = document.getElementById("coords");
+
+    map.on("mousemove", function (e) {
+        coords.innerHTML =
+            `Lat: ${e.latlng.lat.toFixed(6)} | Lon: ${e.latlng.lng.toFixed(6)}`;
+    });
+
+    // Copia coordenadas ao clicar
+    map.on("click", function (e) {
+
+        const texto = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+
+        navigator.clipboard.writeText(texto);
+
+        L.popup()
+            .setLatLng(e.latlng)
+            .setContent(`
+            <b>Coordenadas</b><br>
+            ${texto}<br><br>
+            ✅ Copiado para a área de transferência
+        `)
+            .openOn(map);
+
+    });
+
+    // Lista de marcadores
+    const markers = [];
+
+    // Calcula o tamanho do marcador conforme o zoom
+    function getMarkerRadius(zoom) {
+        return Math.max(4, zoom * 0.7);
+    }
+
+
+    // Carrega o CSV
+    fetch(sheetUrl)
+        .then(res => res.text())
+        .then(csv => {
+
+            Papa.parse(csv, {
+
+                header: true,
+                skipEmptyLines: true,
+
+                complete: function (results) {
+
+                    const terrenos = results.data;
+                    console.log(terrenos);
+
+                    const bounds = L.latLngBounds();
+
+                    terrenos.forEach(t => {
+
+                        if (!t.localizacao) return;
+
+                        // Divide latitude e longitude
+                        const partes = t.localizacao.split(",");
+
+                        if (partes.length !== 2) {
+                            console.warn("Localização inválida:", t.localizacao);
+                            return;
+                        }
+
+                        const lat = parseFloat(partes[0].trim());
+                        const lng = parseFloat(partes[1].trim());
+
+                        if (isNaN(lat) || isNaN(lng)) {
+                            console.warn("Coordenadas inválidas:", t.localizacao);
+                            return;
+                        }
+
+                        bounds.extend([lat, lng]);
+
+                        // Cor do marcador
+                        let color = "orange";
+
+                        switch ((t.status || "").toLowerCase()) {
+                            case "disponivel":
+                                color = "#00FF1E";
+                                break;
+
+                            case "reservada":
+                                color = "#FF0202";
+                                break;
+                        }
+
+                        const marker = L.circleMarker([lat, lng], {
+                            radius: getMarkerRadius(map.getZoom()),
+                            color: color,
+                            fillOpacity: 0.7
+                        })
+                            .bindPopup(`
+                                <b>${t.nome}</b><br>
+                                Status: ${t.status}<br>
+                                Preço: R$ ${t.preco}
+                            `)
+                            .addTo(map);
+
+                        markers.push(marker);
+
+                    });
+
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds);
+                        map.setZoom(16);
+                    } else {
+                        console.error("Nenhuma coordenada válida encontrada.");
+                    }
+
+                }
+
+            });
+
+        })
+        .catch(err => console.error("Erro ao carregar planilha:", err));
+
+    map.on("zoomend", function () {
+
+        const radius = getMarkerRadius(map.getZoom());
+
+        markers.forEach(marker => {
+            marker.setRadius(radius);
+        });
+
+    });
+
+</script>
+
+</html>
