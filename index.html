@@ -59,24 +59,22 @@
 
 <script>
 
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbNsRyrCfXEjaNl5EmXLWHJLMj3wQb3H4df7leBdi8yzvUDunczFL0s0BK2R--PKcJ0-TFhWrcjL1t/pub?gid=0&single=true&output=csv";
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbNsRyrCfXEjaNl5EmXLWHJLMj3wQb3H4df7leBdi8yzvUDunczFL0s0BK2R--PKcJ0-TFhWrcjL1t/pub?gid=110889831&single=true&output=csv";
 
     // Inicializa o mapa
     const map = L.map("map", {
         zoomControl: true,
         minZoom: 1,
-        maxZoom: 18
+        maxZoom: 30
     });
 
-    // Camada de satélite
     L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-            maxZoom: 18,
-            attribution: "Tiles © Esri"
+            maxZoom: 30,
+            attribution: "&copy; OpenStreetMap contributors"
         }
     ).addTo(map);
-
     // Exibe coordenadas do mouse
     const coords = document.getElementById("coords");
 
@@ -203,6 +201,7 @@
         });
 
     });
+
 
 </script>
 
