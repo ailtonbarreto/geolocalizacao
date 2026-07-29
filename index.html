@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Mapa Satélite</title>
+    <title>Coordernadas</title>
+    <link rel="shortcut icon" href="placeholder.png" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
@@ -27,6 +28,43 @@
     #map {
         width: 100%;
         height: 100vh;
+        cursor: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    #guideOverlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 450;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+    }
+
+    #guideOverlay.visible {
+        opacity: 1;
+    }
+
+    #guideVertical,
+    #guideHorizontal {
+        position: absolute;
+        background: rgba(9, 1, 1, 0.95);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    }
+
+    #guideVertical {
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        transform: translateX(-50%);
+    }
+
+    #guideHorizontal {
+        left: 0;
+        right: 0;
+        height: 1px;
+        transform: translateY(-50%);
     }
 
     #coords {
@@ -49,8 +87,12 @@
 
     <div id="coords">Lat: | Lon:</div>
 
-
-    <div id="map"></div>
+    <div id="map">
+        <div id="guideOverlay" aria-hidden="true">
+            <div id="guideVertical"></div>
+            <div id="guideHorizontal"></div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -77,14 +119,31 @@
     ).addTo(map);
     // Exibe coordenadas do mouse
     const coords = document.getElementById("coords");
+    const guideOverlay = document.getElementById("guideOverlay");
+    const guideVertical = document.getElementById("guideVertical");
+    const guideHorizontal = document.getElementById("guideHorizontal");
+
+    function updateGuide(e) {
+        guideVertical.style.left = `${e.containerPoint.x}px`;
+        guideHorizontal.style.top = `${e.containerPoint.y}px`;
+        guideOverlay.classList.add("visible");
+    }
+
+    function hideGuide() {
+        guideOverlay.classList.remove("visible");
+    }
 
     map.on("mousemove", function (e) {
+        updateGuide(e);
         coords.innerHTML =
             `Lat: ${e.latlng.lat.toFixed(6)} | Lon: ${e.latlng.lng.toFixed(6)}`;
     });
 
+    map.on("mouseout", hideGuide);
+
     // Copia coordenadas ao clicar
     map.on("click", function (e) {
+        updateGuide(e);
 
         const texto = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
 
