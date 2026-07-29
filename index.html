@@ -101,8 +101,6 @@
 
 <script>
 
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRbNsRyrCfXEjaNl5EmXLWHJLMj3wQb3H4df7leBdi8yzvUDunczFL0s0BK2R--PKcJ0-TFhWrcjL1t/pub?gid=110889831&single=true&output=csv";
-
     // Inicializa o mapa
     const map = L.map("map", {
         zoomControl: true,
@@ -160,106 +158,8 @@
 
     });
 
-    // Lista de marcadores
-    const markers = [];
-
-    // Calcula o tamanho do marcador conforme o zoom
-    function getMarkerRadius(zoom) {
-        return Math.max(4, zoom * 0.7);
-    }
-
-
-    // Carrega o CSV
-    fetch(sheetUrl)
-        .then(res => res.text())
-        .then(csv => {
-
-            Papa.parse(csv, {
-
-                header: true,
-                skipEmptyLines: true,
-
-                complete: function (results) {
-
-                    const terrenos = results.data;
-                    console.log(terrenos);
-
-                    const bounds = L.latLngBounds();
-
-                    terrenos.forEach(t => {
-
-                        if (!t.localizacao) return;
-
-                        // Divide latitude e longitude
-                        const partes = t.localizacao.split(",");
-
-                        if (partes.length !== 2) {
-                            console.warn("Localização inválida:", t.localizacao);
-                            return;
-                        }
-
-                        const lat = parseFloat(partes[0].trim());
-                        const lng = parseFloat(partes[1].trim());
-
-                        if (isNaN(lat) || isNaN(lng)) {
-                            console.warn("Coordenadas inválidas:", t.localizacao);
-                            return;
-                        }
-
-                        bounds.extend([lat, lng]);
-
-                        // Cor do marcador
-                        let color = "orange";
-
-                        switch ((t.status || "").toLowerCase()) {
-                            case "disponivel":
-                                color = "#00FF1E";
-                                break;
-
-                            case "reservada":
-                                color = "#FF0202";
-                                break;
-                        }
-
-                        const marker = L.circleMarker([lat, lng], {
-                            radius: getMarkerRadius(map.getZoom()),
-                            color: color,
-                            fillOpacity: 0.7
-                        })
-                            .bindPopup(`
-                                <b>${t.nome}</b><br>
-                                Status: ${t.status}<br>
-                                Preço: R$ ${t.preco}
-                            `)
-                            .addTo(map);
-
-                        markers.push(marker);
-
-                    });
-
-                    if (bounds.isValid()) {
-                        map.fitBounds(bounds);
-                        map.setZoom(16);
-                    } else {
-                        console.error("Nenhuma coordenada válida encontrada.");
-                    }
-
-                }
-
-            });
-
-        })
-        .catch(err => console.error("Erro ao carregar planilha:", err));
-
-    map.on("zoomend", function () {
-
-        const radius = getMarkerRadius(map.getZoom());
-
-        markers.forEach(marker => {
-            marker.setRadius(radius);
-        });
-
-    });
+    // Mantém o mapa sem marcadores
+    map.setView([0, 0], 2);
 
 
 </script>
