@@ -111,10 +111,13 @@
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-            maxZoom: 30,
+            maxZoom: 20,
             attribution: "&copy; OpenStreetMap contributors"
         }
     ).addTo(map);
+    
+
+    
     // Exibe coordenadas do mouse
     const coords = document.getElementById("coords");
     const guideOverlay = document.getElementById("guideOverlay");
@@ -158,8 +161,16 @@
 
     });
 
-    // Mantém o mapa sem marcadores
-    map.setView([0, 0], 2);
+
+    map.on("locationerror", function () {
+        map.setView([0, 0], 2);
+    });
+
+    map.locate({
+        setView: true,
+        maxZoom: 16,
+        enableHighAccuracy: true
+    });
 
 
 </script>
