@@ -3,11 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Coordernadas</title>
+    <title>Coordenadas</title>
     <link rel="shortcut icon" href="placeholder.png" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
 </head>
 
 <style>
@@ -17,20 +16,25 @@
         background: #f5f5f5;
     }
 
-    h1 {
-        text-align: center;
-        padding: 20px 0;
-        margin: 0;
-        background: #333;
-        color: white;
-    }
-
     #map {
         width: 100%;
         height: 100vh;
-        cursor: none;
         position: relative;
         overflow: hidden;
+        cursor: none;
+    }
+
+    #coords {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 14px;
     }
 
     #guideOverlay {
@@ -66,27 +70,10 @@
         height: 1px;
         transform: translateY(-50%);
     }
-
-    #coords {
-        position: absolute;
-        bottom: 15px;
-        left: 15px;
-        z-index: 1000;
-        background: rgba(0, 0, 0, 0.75);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-family: monospace;
-        font-size: 14px;
-    }
 </style>
 
 <body>
-
-    <!-- <h1>Mapa Satélite</h1> -->
-
     <div id="coords">Lat: | Lon:</div>
-
     <div id="map">
         <div id="guideOverlay" aria-hidden="true">
             <div id="guideVertical"></div>
@@ -96,83 +83,84 @@
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+    <script>
+      
+        const satelite = L.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            {
+                attribution: "Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics",
+                maxZoom: 19
+            }
+        );
 
-</body>
+        const osm = L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors"
+            }
+        );
 
-<script>
+        const map = L.map("map", {
+            zoomControl: true,
+            minZoom: 1,
+            maxZoom: 18,
+            layers: [satelite]
+        });
 
-    // Inicializa o mapa
-    const map = L.map("map", {
-        zoomControl: true,
-        minZoom: 1,
-        maxZoom: 19
-    });
+        L.control.layers({
+            "Mapa": osm,
+            "Satélite": satelite
+        }).addTo(map);
 
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            maxZoom: 19,
-            attribution: "&copy; OpenStreetMap contributors"
+        const coords = document.getElementById("coords");
+        const guideOverlay = document.getElementById("guideOverlay");
+        const guideVertical = document.getElementById("guideVertical");
+        const guideHorizontal = document.getElementById("guideHorizontal");
+
+        function updateGuide(e) {
+            guideVertical.style.left = `${e.containerPoint.x}px`;
+            guideHorizontal.style.top = `${e.containerPoint.y}px`;
+            guideOverlay.classList.add("visible");
         }
-    ).addTo(map);
-    
 
-    
-    // Exibe coordenadas do mouse
-    const coords = document.getElementById("coords");
-    const guideOverlay = document.getElementById("guideOverlay");
-    const guideVertical = document.getElementById("guideVertical");
-    const guideHorizontal = document.getElementById("guideHorizontal");
+        function hideGuide() {
+            guideOverlay.classList.remove("visible");
+        }
 
-    function updateGuide(e) {
-        guideVertical.style.left = `${e.containerPoint.x}px`;
-        guideHorizontal.style.top = `${e.containerPoint.y}px`;
-        guideOverlay.classList.add("visible");
-    }
+        map.on("mousemove", function (e) {
+            updateGuide(e);
+            coords.innerHTML =
+                `Lat: ${e.latlng.lat.toFixed(6)} | Lon: ${e.latlng.lng.toFixed(6)}`;
+        });
 
-    function hideGuide() {
-        guideOverlay.classList.remove("visible");
-    }
+        map.on("mouseout", hideGuide);
 
-    map.on("mousemove", function (e) {
-        updateGuide(e);
-        coords.innerHTML =
-            `Lat: ${e.latlng.lat.toFixed(6)} | Lon: ${e.latlng.lng.toFixed(6)}`;
-    });
+        
+        map.on("click", function (e) {
+            updateGuide(e);
+            const texto = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            navigator.clipboard.writeText(texto);
 
-    map.on("mouseout", hideGuide);
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent(`
+                    <b>Coordenadas</b><br>
+                    ${texto}<br><br>
+                    ✅ Copiado para a área de transferência
+                `)
+                .openOn(map);
+        });
 
-    // Copia coordenadas ao clicar
-    map.on("click", function (e) {
-        updateGuide(e);
+        map.on("locationerror", function () {
+            map.setView([0, 0], 2);
+        });
 
-        const texto = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-
-        navigator.clipboard.writeText(texto);
-
-        L.popup()
-            .setLatLng(e.latlng)
-            .setContent(`
-            <b>Coordenadas</b><br>
-            ${texto}<br><br>
-            ✅ Copiado para a área de transferência
-        `)
-            .openOn(map);
-
-    });
-
-
-    map.on("locationerror", function () {
-        map.setView([0, 0], 2);
-    });
-
-    map.locate({
-        setView: true,
-        maxZoom: 16,
-        enableHighAccuracy: true
-    });
-
-
-</script>
-
+        map.locate({
+            setView: true,
+            maxZoom: 16,
+            enableHighAccuracy: true
+        });
+    </script>
+</body>
 </html>
